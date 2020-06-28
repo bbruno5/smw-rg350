@@ -4,6 +4,10 @@
 #include "scaler.h"
 
 #include <math.h>
+#include <bits/stdc++.h> 
+#include <iostream> 
+#include <sys/stat.h> 
+#include <sys/types.h>
 
 /*
 #define DINGOO_DOWNSCALE \
@@ -71,16 +75,25 @@ void Menu::WriteGameOptions()
 	fp = fopen("D:\\options.bin", "wb");
 #else
 #ifdef PREFIXPATH
-    char * folder=getenv("PWD");
+	char * folder=getenv("HOME");
+	std::string tmpdir = std::string(folder) + std::string("/.smw");
+	const char * tmpdir2 = tmpdir.c_str();
+	char * dirname = const_cast<char*>(tmpdir2);
+	int check = mkdir(dirname, 0777);
+	if(!check)
+	printf("Home directory created.\n");
+	else {
+		printf("Home directory already exists.\n"); 
+	}
 #ifdef __MACOSX__
 	std::string optionsbin=std::string(folder)+
 		std::string("/Library/Preferences/smw.options.bin");
 #else
-    std::string optionsbin=std::string(folder)+std::string("/options.bin");
+    std::string optionsbin=std::string(folder)+std::string("/.smw/options.bin");
 #endif
     fp= fopen(optionsbin.c_str(), "wb");
 #else
-	fp = fopen("options.bin", "wb");
+	fp = fopen(optionsbin.c_str(), "wb");
 #endif
 #endif
 
