@@ -33,15 +33,7 @@ How to make it run
 
 First of all you need to compile the game with `make`.
 
-Then, copy the game to any location on your memory card and launch smw.dge binary.
-
-For advanced users:
-
-Usage: smw.dge [option]
-
-    -h      --help               show help
-    -sv     --script-version     show script version
-    -v      --version            show version information
+Then, copy the game to any location on your memory card and launch smw binary.
 
 
 Music
