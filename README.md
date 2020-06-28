@@ -31,7 +31,9 @@ Features:
 How to make it run
 ------------------
 
-Copy the game to any location on your memory card and launch smw.dge binary.
+First of all you need to compile the game with `make`.
+
+Then, copy the game to any location on your memory card and launch smw.dge binary.
 
 For advanced users:
 
