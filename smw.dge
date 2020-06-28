@@ -1,0 +1,356 @@
+#!/bin/sh
+##############
+# Start script for Super Mario War
+# author: zLouD
+# date: 2010/10/18
+# version: 1.3
+# note: this script currently only supports Dingux / OpenDingux
+# ---
+# return values:
+# 1 = could not change to directory
+# 2 = file not found
+##
+#TODO: nothin? :/
+#CONTACT: irc.freenode.net/#dingoonity
+##
+##############
+# change to the script directory
+cd $(dirname $0) || return 1
+
+## output INFO msgs to /dev/pts/0 or to log/info.log
+if [ "$2" = '--log-to-file' ] && [ ! -c /dev/pts/0 ]; then
+    LOG='info.log'
+else
+    LOG='/dev/pts/0'
+fi
+
+# clear display
+clear; echo -e "
+  ........W@,@W
+ .........W,.:.W
+ ....:....W .::W
+ .....@@*@+:.::W Super
+ .....@+@@@@.:.W  Mario
+ ....@+@:++@.:.W   War
+ .....@+++# .::W    1.7
+ ....@##*#@@.::W April Fools
+ ...@:@@**:*.:.W    Edition
+ ...@*@###+@.:.W
+ ....@@@..W,.::W   Start script by
+ ..+......@,.::W     _____________
+ ..:......W,,::W    /\\\           /\\
+ W@@@@@@@@@@@@@     |    zLouD    |
+  WWWWWWWWWWWW      \_____________/
+" >/dev/pts/0
+
+## vars
+# Determine how much free memory is available
+DISKFREE=$(df | grep 'boot' | awk '{print $4}')
+
+# Determine total memory
+TOTALMEM=$(cat /proc/meminfo | grep MemTotal | awk '{print $2}')
+
+# Is a swapfile enabled?
+SWAP=$(grep -co '\.swap' /proc/swaps)
+
+# Is zramswap enabled?
+ZRAM=$(grep -co 'zram0' /proc/swaps)
+
+# How large should the zramswap be?
+ZSWAPSIZE=20000
+
+# Empty Var for swap size
+SWAPSIZE=''
+
+# The location of the default swapfile
+SWAPFILE='/boot/.swap'
+
+# Determine which Super Mario War binary should be used
+EXEC=$([ $(uname -r | grep -co '\.24') -eq 1 ] && echo './smw' || echo './smw.od')
+
+# Information about the script version
+SCRIPTVER="Super Mario War start script in version 1.3 from 2010/10/18"
+
+# empty OUTPUT variable
+OUTPUT=''
+
+## colors
+GREEN="\033[1;32m"  # Level 1
+YELLOW="\033[1;33m" # Level 2
+RED="\033[1;31m"    # Level 3
+WHITE="\033[1;37m"
+NO_COLOR="\033[0m"
+
+## text
+ALL_OK='SWAP exists. Now starting Super Mario War'
+CONF_ZRAM='configure and create the zram swap'
+CONF_ZRAM_OK='zramswap created; starting game'
+SWAPFILE_OK='Swapfile activated; starting game'
+SWAPFILE_NEW='creating swapfile...'
+SWAPFILE_NEW_OK='Swapfile created and activated; starting game'
+NO_DISK_SPACE='Not enough disk space available'
+
+## functions
+## printInfo <colorlevel> <msg>
+printInfo () {
+    if [ $# -lt 2 ]; then
+        return 1
+    fi
+
+    echo -e "${WHITE}smw.dge:\t[ ${1}${2}${WHITE}]${NO_COLOR}" >${LOG}
+}
+
+## createDialog <msgbox> <title> <msg> <height> <width>
+## createDialog <menu> <msg> <height> <width> <menu_height> <tag1> <item1> [cancel-label] [ok-label]
+createDialog () {
+    if [ $# -lt 5 ]; then
+        return 1
+    fi
+
+    if [ "$1" = 'msgbox' ]; then
+        dialog --title "$2" --ok-label 'Okay' --msgbox "$3" $4 $5 >${OUTPUT}
+    elif [ "$1" = 'menu' ]; then
+        local cancel="$8"
+        local ok="$9"
+        if [ ! ${cancel} ]; then
+            cancel='No'
+        fi
+        if [ ! ${ok} ]; then
+            ok='Yes'
+        fi
+
+        dialog --cancel-label "${cancel}" --ok-label "${ok}" --menu "$2" \
+            $3 $4 $5 "$6" "$7" >${OUTPUT}
+    fi
+}
+
+## INFO: starting and showing arguments
+printInfo "${YELLOW}" "start script ($*)"
+## INFO
+
+
+## check check, 1..2..3..
+if [ ! -e ${EXEC} ]; then
+    ## INFO: without game, without me!
+    printInfo "${RED}" "ERROR: ${EXEC} was not found!"
+    return 2
+fi
+
+## INFO: We found our game!
+printInfo "${GREEN}" "${EXEC} was found! :)"
+## INFO
+
+## output to display or terminal
+if [ "$2" = '--term' ]; then
+    OUTPUT=$(tty)
+else
+    OUTPUT='/dev/tty1'
+fi
+
+## main
+case "$1" in
+    -h|--help)
+        [ -e './README.txt' ] || return 2
+        ## INFO: show readme
+        printInfo "${YELLOW}" "help is displayed"
+        ## INFO
+        createDialog 'msgbox' 'Help - Super Mario War' "$(cat ./README.txt)" 30 60
+        ## INFO
+        printInfo "${GREEN}" "exited sucessfully"
+        ## INFO
+    ;;
+    -sv|--script-version)
+        ## INFO
+        printInfo "${YELLOW}" "script version is displayed"
+        ## INFO
+        createDialog 'msgbox' 'Super Mario War - smw.dge' "${SCRIPTVER}" 23 56
+        ## INFO
+        printInfo "${GREEN}" "exited sucessfully"
+        ## INFO
+    ;;
+    -v|--version)
+        [ -e './VERSION' ] || return 2
+        ## INFO
+        printInfo "${YELLOW}" "version information is displayed"
+        ## INFO
+        createDialog 'msgbox' 'Version info - Super Mario War' "$(cat ./VERSION)" 23 56
+        ## INFO
+        printInfo "${GREEN}" "exited sucessfully"
+        ## INFO
+    ;;
+    -dbg|--debug)
+        printInfo "${YELLOW}" "free disk space: ${DISKFREE}"
+        printInfo "${YELLOW}" "total memory: ${TOTALMEM}"
+        printInfo "${YELLOW}" "swap file activated?: ${SWAP}"
+        printInfo "${YELLOW}" "compressed swap activated?: ${ZRAM}"
+        printInfo "${YELLOW}" "size of compressed swap (in kiloBytes): ${ZSWAPSIZE}"
+        printInfo "${YELLOW}" "location of the swapfile: ${SWAPFILE}"
+        printInfo "${YELLOW}" "smw binary for this kernel: ${EXEC}"
+        printInfo "${YELLOW}" "script version string: ${SCRIPTVER}"
+        printInfo "${YELLOW}" "where goes the output to?: ${OUTPUT}"
+        printInfo "${YELLOW}" "where are INFO msgs displayed?: ${LOG}"
+    ;;
+    *)
+        # if you have more than 32MB RAM, you're a lucky
+        # also for A330 detection which has 64MB
+        if [ ${TOTALMEM} -gt 44604 ]; then
+            if [ $? -eq 0 ]; then
+                ## INFO
+                printInfo "${GREEN}" "device has enough free memory (probably A320 with 64MB mod or A330)"
+                ## INFO
+                exec ${EXEC} "$@"   ## smw binary!
+            fi
+        fi
+
+        if [ "$1" != '--force-zram' ] && [ $SWAP -eq 1 ] && [ -e $SWAPFILE ] || [ $ZRAM -eq 1 ]; then
+            if [ $? -eq 0 ]; then
+                printInfo "${GREEN}" "${ALL_OK}"
+                exec ${EXEC} "$@"   ## smw binary!
+            fi
+
+        elif [ "$1" = '--force-zram' ] || [ "$1" != '--no-zram' ] &&
+                [ -b /dev/zram0 ] && [ -e /usr/sbin/zramconfig ]; then
+            createDialog 'menu' "Do you want to create a compressed swap in your RAM? (recommended!)" \
+                23 42 7 "default" "/dev/zram0"
+            if [ $? -eq 0 ]; then
+                printInfo "${YELLOW}" "${CONF_ZRAM}"
+                zramconfig /dev/zram0 --disksize_kb=$ZSWAPSIZE --init &&
+                mkswap /dev/zram0 ||
+                ## INFO
+                printInfo "${RED}" "WARNING: could not configure the zram device, it's probably already configured!"
+                ## INFO
+                [ $ZRAM -eq 1 ] &&
+                ## INFO
+                printInfo "${RED}" "WARNING: zram swap is already activated! I restart the script for you. :)" &&
+                ## INFO
+                exec $0
+
+                swapon -p 100 /dev/zram0 &&
+                ## INFO
+                printInfo "${RED}" "activated zram swap, now restarting" &&
+                ## INFO
+                exec $0 ||
+                ## INFO
+                printInfo "${RED}" "ERROR: can't start the game without swap"
+                ## INFO
+                return
+            elif [ $? -eq 1 ]; then
+                ## INFO
+                printInfo "${YELLOW}" "user doesn't want to create compressed swap"
+                ## INFO
+
+                createDialog 'menu' "Do you want to create a swap file? It'll be just activated if its exists already." \
+                    23 42 7 "default" "/boot/.swap"
+
+                if [ $? -eq 0 ]; then
+                    ## INFO
+                    printInfo "${RED}" "restarting script with '--no-zram' argument"
+                    ## INFO
+                    exec $0 '--no-zram'
+
+                elif [ $? -eq 1 ]; then
+                    ## INFO
+                    printInfo "${RED}" "ERROR: can't start the game without swap"
+                    ## INFO
+                    return
+                fi
+            fi
+
+            if [ $? -eq 0 ]; then
+                printInfo "${GREEN}" "${CONF_ZRAM_OK}"
+                exec ${EXEC} "$@"    ## smw binary!
+            fi
+
+        elif [ -e $SWAPFILE ]; then
+            ## INFO
+            printInfo "${YELLOW}" "found a swapfile, trying to activate it"
+            ## INFO
+            swapon -p 50 $SWAPFILE
+            if [ $? -ne 0 ]; then
+                createDialog 'menu'"An error has occurred(the swapfile is probably not right formated!).\nDo you want to create a new swap file?" \
+                    23 42 7 "default" "/boot/.swap"
+                if [ $? -eq 0 ]; then
+                    ## INFO
+                    printInfo "${YELLOW}" "delete the corrupted swapfile and restart"
+                    ## INFO
+                    rm -f $SWAPFILE && exec $0 '--no-zram'
+                elif [ $? -eq 1 ]; then
+                    [ -b /dev/zram0 ] ||
+                    ## INFO
+                    printInfo "${RED}" "ERROR: can't start the game without swap"
+                    ## INFO
+                    return
+
+                    createDialog 'menu' "Do you want to create a compressed swap in your RAM instead? (recommended!)" \
+                        23 42 7 "default" "/dev/zram0"
+                    if [ $? -eq 0 ]; then
+                        ## INFO
+                        printInfo "${RED}" "restarting script with '--force-zram' argument"
+                        ## INFO
+                        exec $0 '--force-zram'
+
+                    elif [ $? -eq 1 ]; then
+                        ## INFO
+                        printInfo "${RED}" "ERROR: can't start the game without swap"
+                        ## INFO
+                        return
+                    fi
+                fi
+            fi
+
+            if [ $? -eq 0 ]; then
+                printInfo "${GREEN}" "${SWAPFILE_OK}"
+                exec ${EXEC} "$@"    ## smw binary!
+            fi
+
+        elif [ $DISKFREE -gt 32768 ]; then
+            createDialog 'menu' "You are going to create a swapfile now.\nDo you still want to create a new swap file?" \
+                23 42 7 "default" "/boot/.swap"
+            if [ $? -eq 0 ]; then
+                createDialog 'menu' "Select filesize for the swapfile." \
+                    23 42 7 "default" "/boot/.swap" '64MB' '32MB'
+                    if [ $? -eq 0 ]; then
+                        SWAPSIZE=32768
+                    else
+                        SWAPSIZE=65536
+                    fi
+                if [ $? -eq 0 ]; then
+                    printInfo "${YELLOW}" "${SWAPFILE_NEW}"
+                    dd if=/dev/zero of=$SWAPFILE bs=1024 count=${SWAPSIZE} &&
+                    mkswap $SWAPFILE &&
+                    swapon -p 50 $SWAPFILE
+                elif [ $? -eq 1 ]; then
+                    [ -b /dev/zram0 ] ||
+                    ## INFO
+                    printInfo "${RED}" "ERROR: can't start the game without swap" &&
+                    ## INFO
+                    return
+
+                    createDialog 'menu' "Do you want to create a compressed swap in your RAM instead? (recommended!)" \
+                        23 42 7 "default" "/dev/zram0"
+                    if [ $? -eq 0 ]; then
+                        ## INFO
+                        printInfo "${RED}" "restarting script with '--force-zram' argument"
+                        ## INFO
+                        exec $0 '--force-zram'
+
+                    elif [ $? -eq 1 ]; then
+                        ## INFO
+                        printInfo "${RED}" "ERROR: can't start the game without swap"
+                        ## INFO
+                        return
+                    fi
+                fi
+            fi
+            if [ $? -eq 0 ]; then
+                printInfo "${GREEN}" "${SWAPFILE_NEW_OK}"
+                exec ${EXEC} "$@"    ## smw binary!
+            fi
+
+        else
+            printInfo "${RED}" "${NO_DISK_SPACE}"
+            createDialog 'msgbox' "Error: Not enough disk space available\n       Could not create a swap file\nSpace left:   ${DISKFREE} Bytes\nSpace Needed:   32768 Bytes\n\n-------\nPress Start to continue" \
+                23 56
+
+        fi
+esac

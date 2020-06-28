@@ -1,0 +1,3 @@
+CFLAGS:=$(CFLAGS) -DLINUXFUNC -DPREFIXPATH=\"/usr/share/smw\" -I/opt/gcw0-toolchain/usr/mipsel-gcw0-linux-uclibc/sysroot/usr/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT -Wall -I. -DPNG_SAVE_FORMAT
+LDFLAGS:=$(LDFLAGS) -L/opt/gcw0-toolchain/usr/mipsel-gcw0-linux-uclibc/sysroot/usr/lib -lSDL -lpthread -lSDL_image -lSDL_mixer -lpng
+COMMON_OBJS:=$(COMMON_OBJS) build/linfunc.o
